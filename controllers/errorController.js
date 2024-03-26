@@ -28,6 +28,14 @@ const getDulicateErrorDB = (err) => {
   return new AppError(message, 400);
 };
 
+const getJwtError = () => {
+  return new AppError("Invalid token, please login again", 401);
+};
+
+const getJwtExpiredError = () => {
+  return new AppError("Your token has expired, please login again", 401);
+};
+
 const sendErrorProd = (err, req, res, next) => {
   if (err.isOperational) {
     res.status(err.statusCode).json({
@@ -60,6 +68,12 @@ module.exports = (err, req, res, next) => {
     }
     if (err.code === 11000) {
       displayedError = getDulicateErrorDB(err);
+    }
+    if (err.name === "JsonWebTokenError") {
+      displayedError = getJwtError();
+    }
+    if (err.name === "TokenExpiredError") {
+      displayedError = getJwtExpiredError();
     }
     sendErrorProd(displayedError, req, res, next);
   }
