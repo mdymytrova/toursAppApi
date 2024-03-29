@@ -14,13 +14,17 @@ const {
   getTourStats,
   getMonthlyPlan,
 } = tourController;
-const { protect } = authController;
+const { protect, restrictTo } = authController;
 
 router.route("/").get(protect, getTours).post(addTour);
 router.route("/top").post(getTopTours, getAllTours);
 router.route("/stats").get(getTourStats);
 router.route("/monthly-plan/:year").get(getMonthlyPlan);
 router.route("/all").post(getAllTours);
-router.route("/:id").get(getTourById).patch(updateTour).delete(deleteTour);
+router
+  .route("/:id")
+  .get(getTourById)
+  .patch(updateTour)
+  .delete(protect, restrictTo("admin", "lead-guide"), deleteTour);
 
 module.exports = router;
