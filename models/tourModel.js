@@ -31,12 +31,16 @@ const tourSchema = new mongoose.Schema(
       default: 0,
       minlength: [1, "A rating must be above 1.0"],
       maxlength: [5, "A rating must be below 5.0"],
+      set: (val) => parseFloat(val.toFixed(1)),
     },
     ratingQty: {
       type: Number,
       default: 0,
     },
-    price: { type: Number, required: [true, "A tour must have a price"] },
+    price: {
+      type: Number,
+      required: [true, "A tour must have a price"],
+    },
     discount: Number,
     summary: {
       type: String,
@@ -52,6 +56,35 @@ const tourSchema = new mongoose.Schema(
       required: true,
     },
     images: [String],
+    startLocation: {
+      type: {
+        type: String,
+        default: "Point",
+        enum: ["Point"],
+      },
+      coordinates: [Number],
+      address: String,
+      description: String,
+    },
+    locations: [
+      {
+        type: {
+          type: String,
+          default: "Point",
+          enum: ["Point"],
+        },
+        coordinates: [Number],
+        address: String,
+        description: String,
+        day: Number,
+      },
+    ],
+    guides: [
+      {
+        type: mongoose.Schema.ObjectId,
+        ref: "User",
+      },
+    ],
     createdAt: {
       type: Date,
       default: Date.now(),
@@ -63,8 +96,18 @@ const tourSchema = new mongoose.Schema(
   { toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
 
+tourSchema.index({ price: 1, ratingAvg: -1 });
+tourSchema.index({ slug: 1 });
+
 tourSchema.virtual("durationWeeks").get(function () {
   return this.duration / 7;
+});
+
+// Virtual populate
+tourSchema.virtual("reviews", {
+  ref: "Review",
+  foreignField: "tour",
+  localField: "_id",
 });
 
 tourSchema.pre("save", function (next) {
@@ -72,7 +115,11 @@ tourSchema.pre("save", function (next) {
   next();
 });
 
-tourSchema.pre("find", function (next) {
+tourSchema.pre(/^find/, function (next) {
+  this.populate({
+    path: "guides",
+    select: "-__v -passwordChangedAt",
+  });
   next();
 });
 

@@ -8,6 +8,7 @@ const ErrorHandler = require("./controllers/errorController");
 const baseUrl = "/api/v1";
 const tourRouter = require("./routes/tourRoutes");
 const userRouter = require("./routes/userRoutes");
+const reviewRouter = require("./routes/reviewRoutes");
 
 // middleware
 // Set security HTTP headers
@@ -22,6 +23,7 @@ app.use(mongoSanitize());
 
 app.use(`${baseUrl}/tours`, tourRouter);
 app.use(`${baseUrl}/users`, userRouter);
+app.use(`${baseUrl}/reviews`, reviewRouter);
 
 app.all("*", (req, res, next) => {
   next(new AppError(`Cannot handle ${req.originalUrl}`, 404));
