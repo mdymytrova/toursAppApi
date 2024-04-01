@@ -1,35 +1,22 @@
 const User = require("./../models/userModel");
 const catchAsync = require("./../utils/catchAsync");
 const AppError = require("../utils/appError");
+const handlerFactory = require("./handlerFactory");
+const UserQueryBuilder = require("../query-builders/userQueryBuilder");
 
-exports.getAllUsers = catchAsync(async (req, res, next) => {
-  const query = await User.find();
-  const users = await query;
+exports.getUsers = handlerFactory.getAll(User);
+exports.getUser = handlerFactory.getOne(User);
 
-  res.status(200).json({
-    status: "success",
-    results: users.length,
-    data: {
-      users,
-    },
-  });
-});
+exports.getFilteredUsers = handlerFactory.getFilteredAll(
+  User,
+  UserQueryBuilder
+);
 
-exports.getUser = catchAsync(async (req, res, next) => {
-  const user = await User.findById(req.params.id);
+// Update user info by admin
+exports.updateUser = handlerFactory.updateOne(User);
+exports.deleteUser = handlerFactory.deleteOne(User);
 
-  if (!user) {
-    next(new AppError(`No user found with ID ${req.params.id}`, 404));
-    return;
-  }
-  res.status(200).json({
-    status: "success",
-    data: {
-      user,
-    },
-  });
-});
-
+// Update user info by current user
 exports.updateCurrentUser = catchAsync(async (req, res, next) => {
   const { firstName, lastName, email } = req.body;
   const user = await User.findByIdAndUpdate(
@@ -68,3 +55,8 @@ exports.deleteCurrentUser = catchAsync(async (req, res, next) => {
     data: null,
   });
 });
+
+exports.getCurrentUser = (req, res, next) => {
+  req.params.id = req.user.id;
+  next();
+};
