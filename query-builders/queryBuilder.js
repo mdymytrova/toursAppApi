@@ -9,8 +9,12 @@ module.exports = class QueryBuilder {
     pageNumber: 1,
   };
 
-  constructor(query, request) {
-    this.query = query;
+  matchAggregations = [];
+  sortAggregation = {};
+  pagingAggregation = {};
+  aggregations = [];
+
+  constructor(request) {
     this.request = request || {};
   }
 
@@ -22,36 +26,71 @@ module.exports = class QueryBuilder {
     return this;
   }
 
-  select() {
-    this.query = this.query.select("-__v");
-    return this;
-  }
-
   sort() {
     const { sort = this.defaultSort } = this.request;
-    this.query = this.query.sort({ [sort.sortBy]: sort.order });
+    this.sortAggregation = { [sort.sortBy]: sort.order };
     return this;
   }
 
   limit() {
     const { paging = this.defaultPaging } = this.request;
-    this.query = this.query
-      .skip(paging.pageSize * (paging.pageNumber - 1))
-      .limit(paging.pageSize);
+    this.pagingAggregation = {
+      skip: paging.pageSize * (paging.pageNumber - 1),
+      limit: paging.pageSize,
+    };
     return this;
   }
 
-  getRange = (rangeObj = {}, prop) => {
-    const rangeQuery = [];
-
-    if (rangeObj.min) {
-      rangeQuery.push({ [prop]: { $gte: rangeObj.min } });
+  build() {
+    let aggregations = [];
+    if (this.matchAggregations.length) {
+      aggregations.push({
+        $match: {
+          $and: this.matchAggregations,
+        },
+      });
     }
 
-    if (rangeObj.max) {
-      rangeQuery.push({ [prop]: { $lte: rangeObj.max } });
+    if (Object.keys(this.sortAggregation).length) {
+      aggregations.push({
+        $sort: this.sortAggregation,
+      });
     }
 
-    return rangeQuery;
+    if (Object.keys(this.pagingAggregation).length) {
+      aggregations.push({
+        $skip: this.pagingAggregation.skip,
+      });
+
+      aggregations.push({
+        $limit: this.pagingAggregation.limit,
+      });
+    }
+
+    return aggregations;
+  }
+
+  addMatchAggregation(propObject) {
+    this.matchAggregations.push(propObject);
+  }
+
+  getFilterRangeMatchers = (filter, props = []) => {
+    const matcherObj = {};
+
+    props.forEach((prop) => {
+      if (filter[prop]) {
+        matcherObj[prop] = {};
+
+        if (filter[prop].min) {
+          matcherObj[prop].min = { $gte: filter[prop].min };
+        }
+
+        if (filter[prop].max) {
+          matcherObj[prop].max = { $gte: filter[prop].max };
+        }
+      }
+    });
+
+    return matcherObj;
   };
 };

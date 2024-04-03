@@ -16,17 +16,19 @@ exports.getAll = (Model) =>
 
 exports.getFilteredAll = (Model, QueryBuilder) =>
   catchAsync(async (req, res, next) => {
-    const query = Model.find();
     const documentsCount = await Model.countDocuments();
 
-    const queryBuilder = new QueryBuilder(query, req.body)
+    const aggregations = new QueryBuilder(req.body)
       .filter()
       .search()
-      .select()
       .sort()
-      .limit();
+      .limit()
+      .build();
 
-    const docs = await queryBuilder.query;
+    const query = aggregations.length
+      ? Model.aggregate([...aggregations])
+      : Model.find();
+    const docs = await query;
 
     res.status(200).json({
       status: "success",

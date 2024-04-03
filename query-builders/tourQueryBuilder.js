@@ -1,37 +1,26 @@
 const QueryBuilder = require("./queryBuilder");
 
 module.exports = class TourQueryBuilder extends QueryBuilder {
-  constructor(query, request) {
-    super(query, request);
+  constructor(request) {
+    super(request);
   }
 
   filter() {
     const { filter = {} } = this.request;
-    const { duration, level, price, rating } = filter;
-    const durationQuery = this.getRange(duration, "duration");
-    const priceQuery = this.getRange(price, "price");
-    const ratingQuery = this.getRange(rating, "ratingAvg");
+    const filterMatchProps = {
+      ...this.getFilterRangeMatchers(filter, [
+        "duration",
+        "price",
+        "ratingAvg",
+      ]),
+    };
 
-    if (durationQuery.length) {
-      this.query = this.query.find({
-        $and: durationQuery,
-      });
+    if (filter.level) {
+      filterMatchProps.level = filter.level;
     }
 
-    if (priceQuery.length) {
-      this.query = this.query.find({
-        $and: priceQuery,
-      });
-    }
-
-    if (ratingQuery.length) {
-      this.query = this.query.find({
-        $and: ratingQuery,
-      });
-    }
-
-    if (level) {
-      this.query = this.query.where("level").equals(level);
+    if (Object.keys(filterMatchProps).length) {
+      this.addMatchAggregation(filterMatchProps);
     }
 
     return this;
@@ -41,7 +30,7 @@ module.exports = class TourQueryBuilder extends QueryBuilder {
     const { search = "" } = this.request;
     if (search) {
       const searchRegex = { $regex: search, $options: "i" };
-      this.query = this.query.find({
+      this.addMatchAggregation({
         $or: [
           { name: searchRegex },
           { summary: searchRegex },
@@ -51,5 +40,37 @@ module.exports = class TourQueryBuilder extends QueryBuilder {
     }
 
     return this;
+  }
+
+  build() {
+    const aggregations = super.build();
+
+    aggregations.push({
+      $addFields: {
+        startDate: {
+          $min: "$startDates",
+        },
+        startLocation: "$startLocation.description",
+        stops: {
+          $size: "$locations",
+        },
+        id: "$_id",
+      },
+    });
+
+    aggregations.push({
+      $project: {
+        _id: 0,
+        __v: 0,
+        description: 0,
+        images: 0,
+        locations: 0,
+        guides: 0,
+        createdAt: 0,
+        startDates: 0,
+      },
+    });
+
+    return aggregations;
   }
 };

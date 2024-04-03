@@ -1,4 +1,5 @@
 const express = require("express");
+const cors = require("cors");
 const helmet = require("helmet");
 const mongoSanitize = require("express-mongo-sanitize");
 const app = express();
@@ -11,6 +12,8 @@ const userRouter = require("./routes/userRoutes");
 const reviewRouter = require("./routes/reviewRoutes");
 
 // middleware
+app.use(cors({ origin: process.env.CLIENT_URL }));
+
 // Set security HTTP headers
 app.use(helmet());
 

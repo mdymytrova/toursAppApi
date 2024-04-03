@@ -1,20 +1,16 @@
 const QueryBuilder = require("./queryBuilder");
 
 module.exports = class ReviewQueryBuilder extends QueryBuilder {
-  constructor(query, request) {
-    super(query, request);
+  constructor(request) {
+    super(request);
   }
 
   filter() {
     const { filter = {} } = this.request;
-    const { rating } = filter;
+    const filterMatchProps = this.getFilterRangeMatchers(filter, ["rating"]);
 
-    const ratingQuery = this.getRange(rating, "rating");
-
-    if (ratingQuery.length) {
-      this.query = this.query.find({
-        $and: ratingQuery,
-      });
+    if (Object.keys(filterMatchProps).length) {
+      this.addMatchAggregation(filterMatchProps);
     }
 
     return this;
@@ -24,7 +20,7 @@ module.exports = class ReviewQueryBuilder extends QueryBuilder {
     const { search = "" } = this.request;
     if (search) {
       const searchRegex = { $regex: search, $options: "i" };
-      this.query = this.query.find({
+      this.addMatchAggregation({
         $or: [{ review: searchRegex }],
       });
     }

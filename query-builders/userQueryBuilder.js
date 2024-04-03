@@ -10,7 +10,7 @@ module.exports = class UserQueryBuilder extends QueryBuilder {
     const { roles } = filter;
 
     if (roles?.length) {
-      this.query = this.query.find({
+      this.addMatchAggregation({
         role: {
           $in: roles,
         },
@@ -24,7 +24,7 @@ module.exports = class UserQueryBuilder extends QueryBuilder {
     const { search = "" } = this.request;
     if (search) {
       const searchRegex = { $regex: search, $options: "i" };
-      this.query = this.query.find({
+      this.addMatchAggregation({
         $or: [
           { firstName: searchRegex },
           { lastName: searchRegex },
